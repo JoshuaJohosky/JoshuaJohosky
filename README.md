@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="johosky-stack-banner.png" alt="The Johosky Stack - 7 Pillars Banner" width="100%" />
+</div>
+
 # Joshua Johosky | Systems Architect
 
 **"The Architect of the Future is the one who can bridge the gap between theoretical symbolic logic and real-world infrastructure."**
