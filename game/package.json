@@ -1,0 +1,15 @@
+{
+  "name": "risk-minecraft-global-domination",
+  "version": "1.0.0",
+  "description": "A fully playable browser version of the fan-made RISK: Minecraft Global Domination board game.",
+  "private": true,
+  "scripts": {
+    "test": "node test.js",
+    "smoke": "node smoke.js",
+    "serve": "python3 -m http.server 8000",
+    "verify": "node test.js && node smoke.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

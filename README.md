@@ -19,6 +19,9 @@ These seven pillars form an interconnected framework for navigating the human-AI
 | **Cognitive Calibration** | [Cognitive-Archive](https://github.com/JoshuaJohosky/cognitive-archive) | **20-year arc** of foundational systems analysis.                                   |
 | **Operational Scaling** | [CA-Life-Simulator](https://github.com/JoshuaJohosky/CA-Life-License-Simulator) | Adaptive GPT-training for **500+ agent** organizations.                             |
 
+## 🎲 Featured Build: RISK · Minecraft Global Domination
+A complete, playable browser version of the fan-made *RISK: Minecraft Global Domination* board game — a territory-control war game with a campaign climb from **the End all the way to the Moon**. Three victory modes, dice combat, a dimension unlock path (Sap Core → Enderite → Cooler → Gravity → Aether → Space → Moon), reward cards, special territories, and 2–6 player support with AI opponents. No build step — open [`game/index.html`](./game/) in any browser. See [`game/README.md`](./game/README.md) for rules and design notes.
+
 ## 🛰️ Technical Philosophy: The Safe Harbor Protocol
 We operate under a "Safe Harbor" protocol, maintaining a clear distinction between **Public Strategic Signals** (documentation, whitepapers, and frameworks) and **Proprietary Logic Engines** (manifold math, private databases, and experimental code). This ensures intellectual property protection while providing high-fidelity transparency to partners and stakeholders.
 
