@@ -122,6 +122,42 @@ console.log('\n=== Unlock path (mechanics) ===');
   CONTINENTS.nether.locked = CONTINENTS.overworld.locked = CONTINENTS.aether.locked = CONTINENTS.space.locked = true;
 })();
 
+// Neutral garrison scaling by dimension level.
+console.log('\n=== Neutral garrison scaling ===');
+(() => {
+  const game = new Game({ players: [{ name: 'A' }, { name: 'B' }], victoryMode: 'lore', variant: 'fast', rng: seeded(3), onLog: () => {} });
+  game.setup(deal(game));
+  const avg = c => { const ids = Object.values(TERRITORIES).filter(t => t.continent === c && game.owner[t.id] === 'neutral' && !TERRITORIES[t.id].structure).map(t => t.id); return ids.reduce((s, id) => s + game.armies[id], 0) / ids.length; };
+  const n = avg('nether'), o = avg('overworld'), a = avg('aether'), s = avg('space');
+  console.log(`  nether ${n}, overworld ${o}, aether ${a}, space ${s}`);
+  check('Nether normals garrison 2', n === 2);
+  check('Overworld normals garrison 3', o === 3);
+  check('Aether normals garrison 4', a === 4);
+  check('Space normals garrison 5', s === 5);
+  check('Moon Summit is a fortress (>= 8)', game.armies['moon_summit'] >= 8);
+})();
+
+// AI does not over-extend into 1-army sprawl on its first turn.
+console.log('\n=== AI restraint (no 1-army sprawl) ===');
+(() => {
+  let thinTurns = 0, sampled = 0;
+  for (let s = 1; s <= 8; s++) {
+    const game = new Game({ players: [{ name: 'AI0', isAI: true }, { name: 'AI1', isAI: true }, { name: 'AI2', isAI: true }],
+      victoryMode: 'lore', variant: 'fast', rng: seeded(s * 13 + 1), onLog: () => {} });
+    game.setup(deal(game));
+    game.players.forEach(p => p._sapHeldSince = null);
+    // Run the first AI player's opening turn only.
+    aiTakeTurn(game);
+    const owned = game.ownedTerritories(0);
+    const ones = owned.filter(id => game.armies[id] === 1).length;
+    const frac = owned.length ? ones / owned.length : 0;
+    sampled++;
+    if (frac > 0.6) thinTurns++;
+  }
+  console.log(`  turns where >60% of tiles were left at 1 army: ${thinTurns}/${sampled}`);
+  check('AI rarely leaves most tiles at 1 army after turn 1', thinTurns <= 2, `(${thinTurns}/${sampled})`);
+})();
+
 // Combat sanity
 console.log('\n=== Combat sanity ===');
 (() => {

@@ -56,9 +56,14 @@ Or just open `index.html` directly in any modern browser.
 - **Synthesized sound effects** (Web Audio — no audio files): dice, hits,
   captures, token chimes, unlock fanfares, and a victory jingle. Toggle with the
   🔊 button.
-- **The whole world stack is garrisoned with neutral armies**, so every locked
-  dimension is a populated battlefield you must fight through — not an empty
-  grey gap.
+- **The whole world stack is garrisoned with neutral armies that scale by
+  depth** — Nether 2, Overworld 3, Aether 4, Space 5, with the Moon as a
+  fortress (Crater/Summit highest) — so every level up is a tougher fight, not
+  an empty grey gap.
+- **Mode-aware AI** — in Lore/Domination the computer chases the unlock path
+  and the Moon and protects its key holdings; in Classic it focuses fire on the
+  weakest rival. It funnels armies toward its objective instead of sprawling
+  one-army-thin across the map.
 
 ## 🕹️ How a turn works
 

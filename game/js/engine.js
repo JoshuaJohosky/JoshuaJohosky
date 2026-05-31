@@ -42,14 +42,16 @@ class Game {
     this.moonHeldSince = null;    // round at which summit was captured -> hold to next turn
   }
 
-  /* How many neutral defenders garrison an undrafted territory. */
+  /* How many neutral defenders garrison an undrafted territory.
+   * Scales with how deep into the world stack the dimension sits, so each
+   * level up is tougher: Nether 2 -> Overworld 3 -> Aether 4 -> Space 5,
+   * with the Moon as a true fortress on top. */
   _neutralGarrison(t) {
-    if (t.structure === 'summit') return 5;   // Moon fortress
-    if (t.structure === 'crater') return 4;
-    if (t.structure) return 3;                // temples, gates, sites
-    if (t.continent === 'space') return 3;    // space is hostile
-    if (t.continent === 'aether') return 3;
-    return 2;                                 // normal biome
+    const base = { end: 2, nether: 2, overworld: 3, aether: 4, space: 5 }[t.continent] || 2;
+    if (t.structure === 'summit') return base + 3;  // Moon Summit — hardest
+    if (t.structure === 'crater') return base + 2;  // Moon Crater
+    if (t.structure) return base + 1;               // temples, gates, sites
+    return base;
   }
 
   _freshTurnState() {
