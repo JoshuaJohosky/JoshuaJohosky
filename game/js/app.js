@@ -22,6 +22,12 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('rulesBtn').onclick = showRules;
   document.getElementById('newGameBtn').onclick = showSetup;
   document.getElementById('board').addEventListener('click', onBoardClick);
+  const sb = document.getElementById('soundBtn');
+  if (sb) sb.onclick = () => {
+    const on = !FX.isOn(); FX.setSound(on);
+    sb.textContent = on ? '🔊' : '🔇';
+    if (on) FX.play('click');
+  };
   showSetup();
 });
 
@@ -209,21 +215,52 @@ function ownerColor(o) {
   return game.players[o].color;
 }
 
+// Per-band decorative gradient stops.
+const BAND_GRAD = {
+  space:     ['#1a1640', '#0a0820'],
+  aether:    ['#1d3a52', '#0e2030'],
+  overworld: ['#1d3a24', '#0e1c12'],
+  nether:    ['#3a1716', '#1c0c0b'],
+  end:       ['#2a1640', '#140a22'],
+};
+// Cache a deterministic starfield for the Space band so it doesn't jitter.
+let STAR_FIELD = null;
+function starField() {
+  if (STAR_FIELD) return STAR_FIELD;
+  let s = ''; let seed = 12345;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  for (let i = 0; i < 70; i++) {
+    const x = 30 + rnd() * 1190, y = 65 + rnd() * 400, r = 0.6 + rnd() * 1.8, o = 0.3 + rnd() * 0.7;
+    s += `<rect class="star" x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="${r.toFixed(1)}" height="${r.toFixed(1)}" opacity="${o.toFixed(2)}"/>`;
+  }
+  STAR_FIELD = s; return s;
+}
+
 function buildBoardSVG(opts = {}) {
   const draftMode = opts.draft;
   let s = '';
+
+  // Gradient defs
+  s += '<defs>';
+  Object.keys(BAND_GRAD).forEach(k => {
+    const [a, b] = BAND_GRAD[k];
+    s += `<linearGradient id="g_${k}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+  });
+  s += '</defs>';
 
   // Bands
   BANDS.forEach(b => {
     const c = CONTINENTS[b.c];
     const locked = c.locked && !draftMode;
-    s += `<rect class="band-rect" x="20" y="${b.y0}" width="1210" height="${b.y1 - b.y0}" rx="14"
-            fill="${c.color}${locked ? '11' : '22'}"/>`;
-    s += `<text class="band-label" x="40" y="${(b.y0 + b.y1) / 2 + 18}">${c.name}</text>`;
+    s += `<rect class="band-rect" x="20" y="${b.y0}" width="1210" height="${b.y1 - b.y0}" rx="16"
+            fill="url(#g_${b.c})" opacity="${locked ? 0.55 : 1}"/>`;
+    if (b.c === 'space') s += starField();
+    s += `<text class="band-label" x="40" y="${(b.y0 + b.y1) / 2 + 12}">${c.name}</text>`;
     if (locked) {
       const tok = UNLOCK_REQUIREMENT[b.c];
-      s += `<text class="lock-badge" x="${1130}" y="${b.y0 + 34}">🔒</text>`;
-      s += `<text x="${980}" y="${b.y0 + 30}" fill="#ffffff66" font-size="13">needs ${TOKENS[tok].name}</text>`;
+      s += `<text class="lock-badge" x="${1135}" y="${b.y0 + 36}">🔒</text>`;
+      s += `<text x="${940}" y="${b.y0 + 30}" fill="#ffffff66" font-size="14" font-weight="bold">🔒 needs ${TOKENS[tok].name} token</text>`;
     }
   });
 
@@ -244,24 +281,34 @@ function buildBoardSVG(opts = {}) {
     s += `<line class="${cls}" x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}"/>`;
   });
 
-  // Nodes
+  // Nodes (blocky tiles)
+  const SZ = 46;
   Object.values(TERRITORIES).forEach(t => {
     const o = draftMode ? (opts.assignments && opts.assignments[t.id]) : game.owner[t.id];
     const col = o == null && draftMode ? '#3a3f49' : ownerColor(o);
     const cnt = draftMode ? '' : (game.armies[t.id] || '');
     const contLocked = CONTINENTS[t.continent].locked && !draftMode;
     let cls = 'terr';
-    if (contLocked && game.owner[t.id] !== game.current) cls += ' dim';
+    if (contLocked && (draftMode || game.owner[t.id] !== game.current)) cls += ' dim';
     if (UI.sel === t.id) cls += ' selected';
     else if (UI.targets.has(t.id)) cls += (UI.mode === 'attack' || UI.mode === 'purify') ? ' target' : ' selectable';
     if (draftMode && opts.selectable && opts.selectable.has(t.id)) cls += ' selectable';
 
-    const icon = t.structure ? `<text class="struct-icon" x="${t.x + 16}" y="${t.y - 14}">${STRUCT_ICON[t.structure] || '★'}</text>` : '';
+    const x = t.x - SZ / 2, y = t.y - SZ / 2;
+    const icon = t.structure
+      ? `<circle class="struct-glow" cx="${t.x + 17}" cy="${t.y - 16}" r="12"/>
+         <text class="struct-icon" x="${t.x + 17}" y="${t.y - 11}" text-anchor="middle">${STRUCT_ICON[t.structure] || '★'}</text>`
+      : '';
+    const badge = cnt !== ''
+      ? `<rect class="badge-bg" x="${t.x - 14}" y="${t.y + 3}" width="28" height="19" rx="6"/>
+         <text class="cnt" x="${t.x}" y="${t.y + 17}" text-anchor="middle">${cnt}</text>`
+      : '';
     s += `<g class="${cls}" data-id="${t.id}">
-            <circle cx="${t.x}" cy="${t.y}" r="22" fill="${col}"/>
-            ${icon}
-            <text class="cnt" x="${t.x}" y="${t.y + 5}" text-anchor="middle">${cnt}</text>
-            <text class="nm" x="${t.x}" y="${t.y + 36}" text-anchor="middle">${t.name}</text>
+            <rect class="ring" x="${x - 5}" y="${y - 5}" width="${SZ + 10}" height="${SZ + 10}" rx="13"/>
+            <rect class="tile" x="${x}" y="${y}" width="${SZ}" height="${SZ}" rx="9" fill="${col}"/>
+            <rect class="tile-top" x="${x + 4}" y="${y + 4}" width="${SZ - 8}" height="${(SZ - 8) / 2.4}" rx="6" fill="#ffffff"/>
+            ${icon}${badge}
+            <text class="nm" x="${t.x}" y="${y + SZ + 14}" text-anchor="middle">${t.name}</text>
           </g>`;
   });
 
@@ -454,8 +501,14 @@ function onBoardClick(ev) {
 
   if (game.phase === PHASES.PLACE) {
     if (game.owner[id] === game.current && game.player().reserve > 0) {
+      const before = game.player().reserve;
       game.placeArmy(id, ev.shiftKey ? 5 : 1);
+      const placed = before - game.player().reserve;
       render();
+      FX.play('place');
+      const t = TERRITORIES[id];
+      FX.floatText(t.x, t.y - 28, '+' + placed, game.player().color, 20);
+      FX.flashNode(id, '#ffffff');
     }
     return;
   }
@@ -487,6 +540,10 @@ function doAttack(from, to) {
     if (res.captured) {
       askMoveIn(res, (move) => {
         game.resolveCapture(from, to, move);
+        const t = TERRITORIES[to];
+        FX.play('capture');
+        FX.burst(t.x, t.y, game.player().color, 18, 75);
+        FX.floatText(t.x, t.y - 32, 'CAPTURED', '#5ad65a', 15);
         afterAction();
         // keep attacking from the new territory if possible
         if (game.winner == null) {
@@ -532,20 +589,66 @@ function handleFortifyClick(id) {
 }
 
 /* ---------------- combat / count modals ---------------- */
-function diceHTML(dice, cls) {
-  return dice.map(d => `<span class="die ${cls}">${d}</span>`).join('') || '<span class="legend">—</span>';
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+function mkDie(parent, cls) {
+  const d = document.createElement('div');
+  d.className = 'die-face ' + cls;
+  for (let i = 0; i < 9; i++) {
+    const c = document.createElement('div'); c.className = 'cell';
+    const dot = document.createElement('div'); dot.className = 'dot';
+    c.appendChild(dot); d.appendChild(c);
+  }
+  parent.appendChild(d); return d;
 }
+function setDie(el, v) {
+  const on = new Set(PIPS[v] || []);
+  [...el.children].forEach((c, i) => c.classList.toggle('on', on.has(i)));
+}
+
 function showCombat(res, done) {
   const fromN = TERRITORIES[res.from].name, toN = TERRITORIES[res.to].name;
   const html = `
-    <h2>⚔️ ${fromN} → ${toN}</h2>
-    <div class="dice-line">Attack: ${diceHTML(res.aDice, 'atk')}</div>
-    <div class="dice-line">Defense: ${diceHTML(res.dDice, 'def')}</div>
-    <p>${res.note || ''}</p>
-    <p>Attacker loses <b>${res.attackerLosses}</b>, defender loses <b>${res.defenderLosses}</b>.
-       ${res.captured ? '<br><b style="color:var(--accent)">Territory captured!</b>' : ''}</p>
-    <div class="btn-row"><button class="btn primary" id="cbOk">Continue</button></div>`;
-  openModal(html, { onOpen: h => h.querySelector('#cbOk').onclick = () => { closeModal(); done(); } });
+    <div class="combat-head"><h2>⚔️ ${fromN} → ${toN}</h2></div>
+    <div class="dice-row"><span class="label atk">ATTACK</span><div class="dice-set" id="aSet"></div></div>
+    <div class="dice-row"><span class="label def">DEFEND</span><div class="dice-set" id="dSet"></div></div>
+    <div class="combat-result" id="cres">🎲 Rolling…</div>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn primary" id="cbOk" disabled>Continue</button></div>`;
+  openModal(html, { onOpen: h => {
+    const aSet = h.querySelector('#aSet'), dSet = h.querySelector('#dSet');
+    const aEls = res.aDice.map(() => mkDie(aSet, 'atk'));
+    const dEls = res.dDice.map(() => mkDie(dSet, 'def'));
+    if (!aEls.length) aSet.innerHTML = '<span class="legend">—</span>';
+    if (!dEls.length) dSet.innerHTML = '<span class="legend">—</span>';
+    const all = aEls.concat(dEls);
+    all.forEach(e => e.classList.add('rolling'));
+    FX.play('dice');
+    let ticks = 0;
+    const iv = setInterval(() => {
+      all.forEach(e => setDie(e, 1 + Math.floor(Math.random() * 6)));
+      if (ticks++ % 3 === 0) FX.play('dice');
+    }, 70);
+    setTimeout(() => {
+      clearInterval(iv);
+      all.forEach(e => e.classList.remove('rolling'));
+      res.aDice.forEach((v, i) => setDie(aEls[i], v));
+      res.dDice.forEach((v, i) => setDie(dEls[i], v));
+      const cmp = Math.min(res.aDice.length, res.dDice.length);
+      for (let i = 0; i < cmp; i++) {
+        if (res.aDice[i] > res.dDice[i]) { aEls[i].classList.add('win'); dEls[i].classList.add('lose'); }
+        else { dEls[i].classList.add('win'); aEls[i].classList.add('lose'); }
+      }
+      FX.play('hit');
+      const ft = TERRITORIES[res.to], ff = TERRITORIES[res.from];
+      if (res.defenderLosses) { FX.burst(ft.x, ft.y, '#ff5a52', 8, 42); FX.floatText(ft.x, ft.y - 22, '-' + res.defenderLosses, '#ff5a52', 22); FX.flashNode(res.to, '#ff5a52'); }
+      if (res.attackerLosses) { FX.floatText(ff.x, ff.y - 22, '-' + res.attackerLosses, '#ffae42', 22); FX.flashNode(res.from, '#ffae42'); }
+      h.querySelector('#cres').innerHTML =
+        `Attacker loses <b>${res.attackerLosses}</b> · Defender loses <b>${res.defenderLosses}</b>` +
+        `${res.note ? '<br><span style="color:#9ad">' + res.note + '</span>' : ''}` +
+        `${res.captured ? '<br><span class="cap">▶ TERRITORY CAPTURED!</span>' : ''}`;
+      const ok = h.querySelector('#cbOk'); ok.disabled = false; ok.focus();
+      ok.onclick = () => { closeModal(); done(); };
+    }, 760);
+  }});
 }
 function askMoveIn(res, done) {
   const min = res.minMove, max = res.maxMove;
@@ -568,17 +671,25 @@ function askCount(title, min, max, def, done) {
 }
 
 /* ---------------- turn flow / AI ---------------- */
-function endHumanTurn() {
-  clearSel();
-  game.endTurn();
-  if (game.winner != null) { render(); showWin(); return; }
-  render();
-  maybeRunAI();
+function announceTurn() {
+  const p = game.player();
+  const b = document.getElementById('turnBanner');
+  if (!b) return;
+  b.textContent = `${p.name}${p.isAI ? ' (CPU)' : ''}  ·  Round ${game.round}`;
+  b.style.borderColor = p.color;
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
 }
 
-function maybeRunAI() {
-  if (!game || game.winner != null) return;
-  if (!game.player().isAI) { render(); return; }
+/* Single entry point for the start of any player's turn. */
+function beginCurrentTurn() {
+  if (game.winner != null) { render(); showWin(); return; }
+  clearSel();
+  announceTurn();
+  render();
+  if (game.player().isAI) runAITurn();
+}
+
+function runAITurn() {
   UI.busy = true; render();
   setTimeout(() => {
     aiTakeTurn(game);
@@ -587,29 +698,47 @@ function maybeRunAI() {
     setTimeout(() => {
       game.endTurn();
       UI.busy = false;
-      if (game.winner != null) { render(); showWin(); return; }
-      render();
-      maybeRunAI(); // chain through consecutive AI players
-    }, 650);
-  }, 600);
+      beginCurrentTurn();
+    }, 700);
+  }, 650);
 }
+
+function endHumanTurn() {
+  clearSel();
+  game.endTurn();
+  beginCurrentTurn();
+}
+// Back-compat alias used by finishDraft.
+function maybeRunAI() { beginCurrentTurn(); }
 
 /* ---------------- win ---------------- */
 function showWin() {
   const w = game.players[game.winner];
   const html = `
-    <h1>🏆 Victory!</h1>
-    <h2 style="color:${w.color}">${w.name} wins the ${game.victoryMode.toUpperCase()} game.</h2>
-    <p class="help">${game.log.filter(e => e.cls === 'win').slice(-1)[0]?.msg || ''}</p>
-    <p>Final standing: ${game.alivePlayers().length} explorer(s) remaining across ${Object.keys(TERRITORIES).length} territories.</p>
-    <div class="btn-row" style="margin-top:16px;">
+    <div class="modal-inner">
+    <div class="trophy">🏆</div>
+    <h1 style="text-align:center"><span class="mc">VICTORY!</span></h1>
+    <h2 style="color:${w.color}; text-align:center">${w.name} wins the ${game.victoryMode.toUpperCase()} game.</h2>
+    <p class="help" style="text-align:center">${game.log.filter(e => e.cls === 'win').slice(-1)[0]?.msg || ''}</p>
+    <p style="text-align:center">${game.alivePlayers().length} explorer(s) remaining across ${Object.keys(TERRITORIES).length} territories.</p>
+    <div class="btn-row" style="margin-top:16px; justify-content:center;">
       <button class="btn primary" id="again">New Game</button>
       <button class="btn" id="closeWin">Review Board</button>
-    </div>`;
-  openModal(html, { onOpen: h => {
+    </div></div>`;
+  const host = openModal(html, { onOpen: h => {
     h.querySelector('#again').onclick = showSetup;
     h.querySelector('#closeWin').onclick = closeModal;
   }});
+  const modal = host.querySelector('.modal');
+  if (modal) modal.classList.add('win-modal');
+  FX.play('win');
+  // Confetti bursts across the board.
+  let n = 0;
+  const confetti = setInterval(() => {
+    const x = 80 + Math.random() * 1080, y = 80 + Math.random() * 1500;
+    FX.burst(x, y, [w.color, '#ffd23f', '#5ad65a', '#49b6ff'][n % 4], 10, 90);
+    if (++n > 14) clearInterval(confetti);
+  }, 180);
 }
 
 /* ---------------- log ---------------- */
@@ -621,11 +750,19 @@ function renderLog(entry) {
   div.textContent = entry.msg;
   host.appendChild(div);
   host.scrollTop = host.scrollHeight;
+  // Audio cues for milestone events (skip while replaying history at setup).
+  if (!UI._replaying && typeof FX !== 'undefined') {
+    if (entry.cls === 'unlock') FX.play('unlock');
+    else if (entry.cls === 'token') FX.play('token');
+    else if (entry.cls === 'win') FX.play('win');
+  }
 }
 function renderLogAll() {
   const host = document.getElementById('log');
   host.innerHTML = '';
+  UI._replaying = true;
   game.log.forEach(renderLog);
+  UI._replaying = false;
 }
 
 /* ---------------- misc ---------------- */

@@ -42,6 +42,16 @@ class Game {
     this.moonHeldSince = null;    // round at which summit was captured -> hold to next turn
   }
 
+  /* How many neutral defenders garrison an undrafted territory. */
+  _neutralGarrison(t) {
+    if (t.structure === 'summit') return 5;   // Moon fortress
+    if (t.structure === 'crater') return 4;
+    if (t.structure) return 3;                // temples, gates, sites
+    if (t.continent === 'space') return 3;    // space is hostile
+    if (t.continent === 'aether') return 3;
+    return 2;                                 // normal biome
+  }
+
   _freshTurnState() {
     return {
       specialUsed: false,
@@ -80,7 +90,16 @@ class Game {
         this.armies[id] = 1;
       } else {
         this.owner[id] = NEUTRAL;
-        this.armies[id] = TERRITORIES[id].structure ? 4 : 2; // objectives defend harder
+        this.armies[id] = this._neutralGarrison(TERRITORIES[id]);
+      }
+    });
+
+    // Garrison the rest of the world stack with neutral defenders so the
+    // board feels alive and every dimension must be fought through.
+    Object.values(TERRITORIES).forEach(t => {
+      if (this.owner[t.id] == null) {
+        this.owner[t.id] = NEUTRAL;
+        this.armies[t.id] = this._neutralGarrison(t);
       }
     });
 

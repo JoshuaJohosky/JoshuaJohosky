@@ -9,7 +9,7 @@ const { window } = dom;
 
 // Inject each script as an inline <script> so top-level declarations become
 // real realm globals (function decls -> window props; class/const -> lexical).
-['js/data.js', 'js/cards.js', 'js/engine.js', 'js/ai.js', 'js/app.js'].forEach(f => {
+['js/data.js', 'js/cards.js', 'js/engine.js', 'js/ai.js', 'js/effects.js', 'js/app.js'].forEach(f => {
   const el = window.document.createElement('script');
   el.textContent = fs.readFileSync(path.join(__dirname, f), 'utf8');
   window.document.body.appendChild(el);
@@ -32,7 +32,14 @@ const game = ev('game');
 const NT = ev('Object.keys(TERRITORIES).length');
 check('game created', game != null);
 check('setup placed armies on End', Object.values(game.armies).reduce((a, b) => a + b, 0) >= 35);
+check('no territory left unowned (neutral garrisons seeded)', Object.values(game.owner).every(o => o != null));
+{
+  const nether = Object.values(ev('TERRITORIES')).filter(t => t.continent === 'nether');
+  check('Nether garrisoned with neutral armies', nether.every(t => game.owner[t.id] === 'neutral' && game.armies[t.id] >= 1));
+}
+check('FX module present', typeof ev('FX') === 'object');
 check('board SVG drew all nodes', window.document.querySelectorAll('g.terr').length === NT);
+check('board SVG drew blocky tiles', window.document.querySelectorAll('g.terr .tile').length === NT);
 check('player 0 turn, place phase', game.current === 0 && game.phase === 'place');
 check('reserve assigned', game.player().reserve >= 3);
 
@@ -100,7 +107,7 @@ check('reward card renders', /Army Boost/.test(window.document.getElementById('c
 // Win screen
 game.winner = 0;
 window.showWin();
-check('win screen renders', /Victory/.test(window.document.querySelector('.modal').textContent));
+check('win screen renders', /victory/i.test(window.document.querySelector('.modal').textContent));
 
 console.log(`\n=== smoke: ${pass} passed, ${fail} failed ===`);
 process.exit(fail ? 1 : 0);

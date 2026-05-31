@@ -42,8 +42,23 @@ Or just open `index.html` directly in any modern browser.
 - **2–6 players**, any mix of humans and **heuristic AI opponents**.
 - **Setup variants** — Strategic draft, Fast deal, and Chaos (Nether open from
   the start).
-- Continent bonuses, neutral armies, the First-Round rule, elimination, and the
-  Section-18 tiebreaker are all implemented.
+- Continent bonuses, the First-Round rule, elimination, and the Section-18
+  tiebreaker are all implemented.
+
+### Look & feel (arcade juice)
+
+- **Blocky tile board** with gradient dimension bands, a Space starfield, and
+  glowing structure markers — drawn as scalable SVG.
+- **Animated dice combat** — rolling pip-faces that shake and settle, with
+  gold win / dimmed-lose highlighting and the result spelled out.
+- **Particle bursts, floating damage/“+armies” numbers, screen-flash on hits,
+  capture confetti, and a turn banner** between players.
+- **Synthesized sound effects** (Web Audio — no audio files): dice, hits,
+  captures, token chimes, unlock fanfares, and a victory jingle. Toggle with the
+  🔊 button.
+- **The whole world stack is garrisoned with neutral armies**, so every locked
+  dimension is a populated battlefield you must fight through — not an empty
+  grey gap.
 
 ## 🕹️ How a turn works
 
@@ -68,7 +83,12 @@ npm run verify   # both
 - `test.js` runs many all-AI games across every mode/player-count and verifies
   every unlock-path mechanic deterministically (23 checks).
 - `smoke.js` loads the real page in jsdom and drives placement, attack/capture,
-  fortify, AI turns, cards, the rules modal, and the win screen (16 checks).
+  fortify, AI turns, cards, the rules modal, and the win screen (20 checks,
+  including the neutral-garrison seeding and blocky-tile rendering).
+
+```bash
+npm run screenshot   # headless-Chromium capture of setup, board, and combat
+```
 
 ## 📐 Rulebook interpretation (filling the prototype's gaps)
 
@@ -95,7 +115,9 @@ js/cards.js       reward-card definitions + weighted draw
 js/engine.js      rules engine: setup, reinforcement, combat, fortify,
                   unlock path, special actions, win/tiebreaker logic
 js/ai.js          heuristic AI opponent
+js/effects.js     Web Audio SFX + SVG particle / floating-text effects
 js/app.js         board rendering + interaction state machine + flow
 test.js           engine simulation suite (Node)
 smoke.js          headless DOM suite (jsdom)
+screenshot.js     headless-Chromium screenshot tool (dev)
 ```

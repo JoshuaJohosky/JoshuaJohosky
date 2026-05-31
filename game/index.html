@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RISK: Minecraft Global Domination</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,6 +17,7 @@
       <span class="pill" id="modePill">—</span>
       <span class="pill" id="roundPill">Round —</span>
       <span class="pill" id="playerPill">—</span>
+      <button class="btn small" id="soundBtn" title="Toggle sound">🔊</button>
       <button class="btn small" id="rulesBtn">Rules</button>
       <button class="btn small" id="newGameBtn">New Game</button>
     </div>
@@ -22,6 +26,7 @@
   <div id="main">
     <div id="boardWrap">
       <svg id="board" viewBox="0 0 1250 1720" preserveAspectRatio="xMidYMin meet"></svg>
+      <div id="turnBanner" class="turn-banner"></div>
     </div>
 
     <div id="side">
@@ -66,6 +71,7 @@
 <script src="js/cards.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/ai.js"></script>
+<script src="js/effects.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
